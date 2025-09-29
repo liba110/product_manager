@@ -30,7 +30,7 @@ export const useCrossBrowserProducts = () => {
       console.log('🌐 Status:', status);
       console.log('🛠️ Use Supabase:', useSupabase);
 
-      if (useSupabase && status.isOnline) {
+      if (useSupabase) {
         console.log('📡 Trying Supabase...');
         const { data, error: supabaseError } = await supabase
           .from('products')
@@ -83,7 +83,8 @@ export const useCrossBrowserProducts = () => {
     const now = new Date().toISOString();
     const productCategories = categories || product.categories || defaultProductCategories;
 
-    const generatedId = product.id || uuidv4(); // Generate a valid UUID if no id is provided
+    const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const generatedId = (product.id && isValidUUID(product.id)) ? product.id : uuidv4(); // Generate a valid UUID if no id is provided or if it's invalid
     console.log('🆔 Generated ID at start of saveProduct:', generatedId); // Log the generated ID at the start
 
     const updatedProduct: ProductWithTasks = {
@@ -97,7 +98,7 @@ export const useCrossBrowserProducts = () => {
 
     console.log('💾 Updated product before saving to Supabase:', updatedProduct); // Log the updated product before saving
 
-    if (useSupabase && status.isOnline) {
+    if (useSupabase) {
       try {
         console.log('📡 Saving to Supabase...');
         const supabaseData = {
@@ -155,7 +156,7 @@ export const useCrossBrowserProducts = () => {
   // Delete product
   const deleteProduct = async (productId: string) => {
     // Delete from Supabase first if available
-    if (useSupabase && status.isOnline) {
+    if (useSupabase) {
       try {
         console.log('📡 Deleting from Supabase...');
         const { error: supabaseError } = await supabase
