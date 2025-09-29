@@ -24,11 +24,11 @@ export const useCrossBrowserProducts = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🔄 Loading products...');
       console.log('🌐 Status:', status);
       console.log('🛠️ Use Supabase:', useSupabase);
-      
+
       if (useSupabase && status.isOnline) {
         console.log('📡 Trying Supabase...');
         const { data, error: supabaseError } = await supabase
@@ -81,7 +81,7 @@ export const useCrossBrowserProducts = () => {
   const saveProduct = async (product: Partial<ProductWithTasks>, categories?: TaskCategory[]): Promise<ProductWithTasks> => {
     const now = new Date().toISOString();
     const productCategories = categories || product.categories || defaultProductCategories;
-    
+
     const updatedProduct: ProductWithTasks = {
       id: product.id || `product-${Date.now()}`,
       name: product.name || 'Untitled Product',
@@ -125,21 +125,21 @@ export const useCrossBrowserProducts = () => {
     setProducts(prev => {
       const existingIndex = prev.findIndex(p => p.id === updatedProduct.id);
       let newProducts;
-      
+
       if (existingIndex >= 0) {
         newProducts = [...prev];
         newProducts[existingIndex] = updatedProduct;
       } else {
         newProducts = [updatedProduct, ...prev];
       }
-      
+
       console.log('💾 Saving to storage:', newProducts.length, 'products');
       // Save to storage (local + cloud)
       simpleCrossBrowserStorage.saveProducts(newProducts.map(p => ({
         ...p,
         categories: p.categories
       })));
-      
+
       return newProducts;
     });
 
@@ -170,16 +170,16 @@ export const useCrossBrowserProducts = () => {
 
     setProducts(prev => {
       const newProducts = prev.filter(p => p.id !== productId);
-      
+
       // Save to storage
       simpleCrossBrowserStorage.saveProducts(newProducts.map(p => ({
         ...p,
         categories: p.categories
       })));
-      
+
       return newProducts;
     });
-    
+
     updateStatus();
   };
 
@@ -189,17 +189,17 @@ export const useCrossBrowserProducts = () => {
     if (product && product.categories) {
       return product;
     }
-    
+
     if (product) {
       const productWithCategories = {
         ...product,
         categories: defaultProductCategories
       };
-      
+
       await saveProduct(productWithCategories);
       return productWithCategories;
     }
-    
+
     return null;
   };
 
