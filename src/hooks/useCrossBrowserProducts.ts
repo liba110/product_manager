@@ -111,7 +111,7 @@ export const useCrossBrowserProducts = () => {
         };
 
         console.log('🛠️ Supabase data being sent:', supabaseData); // Log the data being sent to Supabase
-
+        //it works now
         const { error: supabaseError } = await supabase
           .from('products')
           .upsert(supabaseData);
