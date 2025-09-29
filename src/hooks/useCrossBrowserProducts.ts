@@ -26,67 +26,54 @@ export const useCrossBrowserProducts = () => {
       setError(null);
       
       console.log('🔄 Loading products...');
+      console.log('🌐 Status:', status);
+      console.log('🛠️ Use Supabase:', useSupabase);
       
       if (useSupabase && status.isOnline) {
         console.log('📡 Trying Supabase...');
-        try {
-          const { data, error: supabaseError } = await supabase
-            .from('products')
-            .select('*')
-            .order('updated_at', { ascending: false });
+        const { data, error: supabaseError } = await supabase
+          .from('products')
+          .select('id, name, updated_at') // Fetch only necessary columns
+          .order('updated_at', { ascending: false })
+          .limit(100); // Limit to 100 products
 
-          if (supabaseError) {
-            console.error('❌ Supabase error:', supabaseError);
-            throw supabaseError;
-          }
-
-          console.log('✅ Supabase data:', data?.length || 0, 'products');
-          
-          // Convert Supabase data to our format
-          const supabaseProducts = (data || []).map(item => ({
+        if (supabaseError) {
+          console.error('❌ Supabase error:', supabaseError);
+          setError('Failed to fetch products from Supabase');
+        } else if (data) {
+          console.log('✅ Supabase data:', data.length, 'products');
+          const supabaseProducts = data.map(item => ({
             id: item.id,
             name: item.name,
-            image: item.image_url,
-            createdAt: item.created_at,
+            image: null, // Placeholder for image
+            createdAt: '', // Placeholder for createdAt
             updatedAt: item.updated_at,
-            categories: Array.isArray(item.categories) ? item.categories : defaultProductCategories
+            categories: defaultProductCategories // Default categories
           }));
-          
+
           setProducts(supabaseProducts);
-          
-          // Also save to local storage as backup
           await simpleCrossBrowserStorage.saveProducts(supabaseProducts.map(p => ({
             ...p,
             categories: p.categories
           })));
-          
-        } catch (supabaseError) {
-          console.error('❌ Supabase failed, falling back to local storage');
-          const storageProducts = await simpleCrossBrowserStorage.loadProducts();
-          const productsWithCategories = storageProducts.map(product => ({
-            ...product,
-            categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
-          }));
-          setProducts(productsWithCategories);
-          setError('Using local storage - Supabase connection failed');
+          return; // Exit early if Supabase fetch is successful
         }
-      } else {
-        console.log('💾 Using local storage only');
-        const storageProducts = await simpleCrossBrowserStorage.loadProducts();
-        const productsWithCategories = storageProducts.map(product => ({
-          ...product,
-          categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
-        }));
-        setProducts(productsWithCategories);
       }
-      
-      updateStatus();
+
+      console.log('💾 Falling back to local storage');
+      const storageProducts = await simpleCrossBrowserStorage.loadProducts();
+      const productsWithCategories = storageProducts.map(product => ({
+        ...product,
+        categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
+      }));
+      setProducts(productsWithCategories);
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Failed to load products');
       setProducts([]);
     } finally {
       setLoading(false);
+      updateStatus();
     }
   };
 
