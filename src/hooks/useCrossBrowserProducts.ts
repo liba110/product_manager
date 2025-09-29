@@ -84,7 +84,7 @@ export const useCrossBrowserProducts = () => {
     const productCategories = categories || product.categories || defaultProductCategories;
 
     const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-  const generatedId = (product.id && isValidUUID(product.id)) ? product.id : uuidv4(); // Generate a valid UUID if no id is provided or if it's invalid
+    const generatedId = (product.id && isValidUUID(product.id)) ? product.id : uuidv4(); // Generate a valid UUID if no id is provided or if it's invalid
     console.log('🆔 Generated ID at start of saveProduct:', generatedId); // Log the generated ID at the start
 
     const updatedProduct: ProductWithTasks = {
