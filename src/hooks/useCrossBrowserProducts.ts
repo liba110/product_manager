@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { simpleCrossBrowserStorage, StorageProduct } from '../lib/simpleStorage';
 import { defaultProductCategories, TaskCategory } from '../lib/productTemplates';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ProductWithTasks extends Omit<StorageProduct, 'categories'> {
   categories: TaskCategory[];
@@ -82,8 +83,11 @@ export const useCrossBrowserProducts = () => {
     const now = new Date().toISOString();
     const productCategories = categories || product.categories || defaultProductCategories;
 
+    const generatedId = product.id || uuidv4(); // Generate a valid UUID if no id is provided
+    console.log('🆔 Generated ID at start of saveProduct:', generatedId); // Log the generated ID at the start
+
     const updatedProduct: ProductWithTasks = {
-      id: product.id || `product-${Date.now()}`,
+      id: generatedId,
       name: product.name || 'Untitled Product',
       image: product.image || null,
       createdAt: product.createdAt || now,
@@ -91,9 +95,8 @@ export const useCrossBrowserProducts = () => {
       categories: productCategories
     };
 
-    console.log('💾 Saving product:', updatedProduct.name);
+    console.log('💾 Updated product before saving to Supabase:', updatedProduct); // Log the updated product before saving
 
-    // Save to Supabase first if available
     if (useSupabase && status.isOnline) {
       try {
         console.log('📡 Saving to Supabase...');
@@ -106,6 +109,8 @@ export const useCrossBrowserProducts = () => {
           updated_at: updatedProduct.updatedAt,
           user_id: null
         };
+
+        console.log('🛠️ Supabase data being sent:', supabaseData); // Log the data being sent to Supabase
 
         const { error: supabaseError } = await supabase
           .from('products')
@@ -121,7 +126,8 @@ export const useCrossBrowserProducts = () => {
       }
     }
 
-    // Update local state
+    console.log('🆔 Final ID before updating local state:', updatedProduct.id); // Log the final ID before updating local state
+
     setProducts(prev => {
       const existingIndex = prev.findIndex(p => p.id === updatedProduct.id);
       let newProducts;
@@ -134,7 +140,6 @@ export const useCrossBrowserProducts = () => {
       }
 
       console.log('💾 Saving to storage:', newProducts.length, 'products');
-      // Save to storage (local + cloud)
       simpleCrossBrowserStorage.saveProducts(newProducts.map(p => ({
         ...p,
         categories: p.categories
