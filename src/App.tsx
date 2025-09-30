@@ -6,8 +6,10 @@ import NewProductApp from './components/NewProductApp';
 import ExistingProductApp from './components/ExistingProductApp';
 import DraftProductApp from './components/DraftProductApp';
 import CodeExporter from './components/CodeExporter';
+import PasswordGate from './components/PasswordGate';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { 
     products, 
     loading, 
@@ -28,6 +30,11 @@ const App: React.FC = () => {
   const [newProductName, setNewProductName] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState('');
+
+  // Show password gate if not authenticated
+  if (!isAuthenticated) {
+    return <PasswordGate onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
 
   const checkPassword = () => {
     if (password === 'Admin1') {
