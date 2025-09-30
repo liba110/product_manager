@@ -45,6 +45,8 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     setSelectedProduct(product);
     setProductName(product.name || 'New Product');
     setProductImage(product.image);
+    setCurrentView('create'); // Change view immediately to show loading spinner
+    window.scrollTo(0, 0); // Scroll to top when opening product
 
     // Fetch image lazily if not already loaded
     if (!product.image) {
@@ -55,7 +57,6 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     }
 
     setImageLoading(false);
-    setCurrentView('create');
   };
 
   const requireExportPassword = (action: () => void) => {
@@ -75,7 +76,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     }
   };
 
-  const toggleTask = (categoryId: string, taskId: string, sectionKey?: string) => {
+  const toggleTask = async (categoryId: string, taskId: string, sectionKey?: string) => {
     if (!selectedProduct) return;
 
     const updatedCategories = selectedProduct.categories.map(category => {
@@ -115,13 +116,21 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
     // Save immediately and show status
     setSaveStatus('saving');
-    onUpdateProduct(updatedProduct);
+    try {
+      const savedProduct = await onUpdateProduct(updatedProduct);
+      // Update selectedProduct with the saved product that has the real UUID
+      setSelectedProduct(savedProduct);
 
-    // Show saved confirmation briefly
-    setTimeout(() => {
-      setSaveStatus('saved');
+      // Show saved confirmation briefly
+      setTimeout(() => {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      }, 500);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 500);
+    }
   };
 
   const handleImageUpload = (file: File) => {
@@ -373,9 +382,17 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleOpenProduct(product)}
-                      className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                      disabled={imageLoading}
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Open
+                      {imageLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        'Open'
+                      )}
                     </button>
                     <button
                       onClick={() => requireExportPassword(() => exportProduct(product))}
