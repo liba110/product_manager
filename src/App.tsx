@@ -9,13 +9,13 @@ import CodeExporter from './components/CodeExporter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 const App: React.FC = () => {
-  const { 
-    products, 
-    loading, 
-    error, 
-    saveProduct, 
-    deleteProduct, 
-    fetchProductDetails, 
+  const {
+    products,
+    loading,
+    error,
+    saveProduct,
+    deleteProduct,
+    fetchProductDetails,
     refreshProducts,
     status,
     useSupabase,
@@ -52,7 +52,7 @@ const App: React.FC = () => {
       setCurrentView('product');
       return;
     }
-    
+
     // Otherwise, fetch full product details including categories
     try {
       const fullProduct = await fetchProductDetails(product.id);
@@ -85,17 +85,17 @@ const App: React.FC = () => {
 
       // Save to database but don't wait for it to prevent blocking
       saveProduct(newProduct, productCategories).catch(console.error);
-      
+
       // Add to New tab products list
       const productWithCategories: ProductWithTasks = {
         ...newProduct,
         categories: productCategories
       };
       setNewTabProducts(prev => [productWithCategories, ...prev]);
-      
+
       setNewProductName('');
       setIsCreatingProduct(false);
-      
+
       // Return the created product for the component to use
       return productWithCategories;
     } catch (error) {
@@ -106,12 +106,12 @@ const App: React.FC = () => {
 
   const handleUpdateProduct = (updatedProduct: ProductWithTasks) => {
     // Update the product in the newTabProducts list
-    setNewTabProducts(prev => 
-      prev.map(product => 
+    setNewTabProducts(prev =>
+      prev.map(product =>
         product.id === updatedProduct.id ? updatedProduct : product
       )
     );
-    
+
     // Return a promise so the UI can show proper feedback
     return saveProduct(updatedProduct, updatedProduct.categories);
   };
@@ -119,7 +119,7 @@ const App: React.FC = () => {
   const handleDeleteProduct = (productId: string) => {
     // Remove from all local states
     setNewTabProducts(prev => prev.filter(p => p.id !== productId));
-    
+
     // Remove from database
     deleteProduct(productId);
   };
@@ -132,11 +132,11 @@ const App: React.FC = () => {
       categories: selectedProduct.categories.map(category =>
         category.id === categoryId
           ? {
-              ...category,
-              tasks: category.tasks.map(task =>
-                task.id === taskId ? { ...task, completed: !task.completed } : task
-              )
-            }
+            ...category,
+            tasks: category.tasks.map(task =>
+              task.id === taskId ? { ...task, completed: !task.completed } : task
+            )
+          }
           : category
       )
     };
@@ -182,7 +182,7 @@ const App: React.FC = () => {
                     <span className="text-2xl">{category.icon}</span>
                     <h3 className="text-xl font-semibold text-gray-800">{category.name}</h3>
                   </div>
-                  
+
                   <div className="mb-4">
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
                       <span>Progress</span>
@@ -287,17 +287,16 @@ const App: React.FC = () => {
                 </label>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               {(['new', 'draft'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => tab === 'draft' ? handleDraftClick() : setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === tab
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === tab
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
@@ -323,7 +322,7 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'existing' && (
-        <ExistingProductApp 
+        <ExistingProductApp
           products={products}
           onSelectProduct={handleSelectProduct}
           onDeleteProduct={handleDeleteProduct}
@@ -331,7 +330,7 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'draft' && (
-        <DraftProductApp 
+        <DraftProductApp
           onCreateProduct={handleCreateProduct}
         />
       )}
