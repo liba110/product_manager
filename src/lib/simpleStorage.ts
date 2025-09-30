@@ -30,13 +30,13 @@ class SimpleCrossBrowserStorage {
   private saveLocal(products: StorageProduct[]): void {
     try {
       console.log('💾 Saving to localStorage:', products.length, 'products');
-      
+
       // Remove base64 images to prevent quota exceeded errors
       const productsForStorage = products.map(product => ({
         ...product,
         image: product.image && product.image.startsWith('data:') ? null : product.image
       }));
-      
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         products: productsForStorage,
         lastUpdated: new Date().toISOString(),
@@ -74,13 +74,13 @@ class SimpleCrossBrowserStorage {
       const response = await fetch('https://httpbin.org/post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           products,
           timestamp: Date.now(),
-          domain: window.location.hostname 
+          domain: window.location.hostname
         })
       });
-      
+
       if (response.ok) {
         console.log('✅ Cloud sync attempted');
       }
@@ -100,7 +100,7 @@ class SimpleCrossBrowserStorage {
   async saveProducts(products: StorageProduct[]): Promise<void> {
     // Always save locally first (this is what matters)
     this.saveLocal(products);
-    
+
     // Try cloud sync (non-blocking, best effort)
     this.saveCloud(products).catch(() => {
       // Ignore cloud errors - local storage is primary

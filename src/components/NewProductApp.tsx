@@ -12,8 +12,8 @@ interface NewProductAppProps {
   allProducts: ProductWithTasks[];
 }
 
-const NewProductApp: React.FC<NewProductAppProps> = ({ 
-  products, 
+const NewProductApp: React.FC<NewProductAppProps> = ({
+  products,
   onDeleteProduct,
   onCreateProduct,
   onUpdateProduct,
@@ -45,7 +45,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     setSelectedProduct(product);
     setProductName(product.name || 'New Product');
     setProductImage(product.image);
-    
+
     // Fetch image lazily if not already loaded
     if (!product.image) {
       const imageUrl = await fetchProductImage(product.id);
@@ -53,7 +53,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
       // Update the selected product with the fetched image
       setSelectedProduct(prev => prev ? { ...prev, image: imageUrl } : null);
     }
-    
+
     setImageLoading(false);
     setCurrentView('create');
   };
@@ -80,7 +80,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
     const updatedCategories = selectedProduct.categories.map(category => {
       if (category.id !== categoryId) return category;
-    
+
       if (sectionKey && category.subSections) {
         // Handle subsection tasks
         return {
@@ -105,18 +105,18 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
         };
       }
     });
-    
+
     // Calculate new progress after task toggle
     const tempProduct = { ...selectedProduct, categories: updatedCategories };
     const newProgress = getProductProgress(tempProduct);
-    
+
     const updatedProduct = { ...tempProduct, progress: newProgress };
     setSelectedProduct(updatedProduct);
-    
+
     // Save immediately and show status
     setSaveStatus('saving');
     onUpdateProduct(updatedProduct);
-    
+
     // Show saved confirmation briefly
     setTimeout(() => {
       setSaveStatus('saved');
@@ -129,7 +129,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     reader.onload = (e) => {
       const imageData = e.target?.result as string;
       setProductImage(imageData);
-      
+
       // If we have a selected product, update it immediately
       if (selectedProduct) {
         const updatedProduct = { ...selectedProduct, image: imageData };
@@ -147,7 +147,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
       updatedAt: product.updatedAt,
       categories: product.categories
     }));
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -167,7 +167,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
       updatedAt: product.updatedAt,
       categories: product.categories
     };
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -226,19 +226,19 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
   const handleSaveProduct = async () => {
     if (saveStatus === 'saving') return; // Prevent multiple clicks
-    
+
     setSaveStatus('saving');
     setSaveMessage('Saving product...');
-    
+
     console.log('🚀 Creating product:', productName);
 
     try {
       if (selectedProduct) {
         // Update the existing product - recalculate progress
         const currentProgress = getProductProgress(selectedProduct);
-        const updatedProduct = { 
-          ...selectedProduct, 
-          name: selectedProduct.name, 
+        const updatedProduct = {
+          ...selectedProduct,
+          name: selectedProduct.name,
           image: selectedProduct.image || productImage,
           progress: currentProgress
         };
@@ -254,9 +254,9 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
           categories: defaultProductCategories,
           progress: 0
         };
-        
+
         const newProduct = await onCreateProduct(productData);
-        
+
         if (newProduct) {
           console.log('🔄 Updating product:', newProduct.name);
           setSaveStatus('saved');
@@ -266,18 +266,18 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
           setSaveMessage('Failed to create product. Please try again.');
         }
       }
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSaveStatus('idle');
         setSaveMessage('');
       }, 3000);
-      
+
     } catch (error) {
       console.error('Error saving product:', error);
       setSaveStatus('error');
       setSaveMessage('Failed to save product. Please try again.');
-      
+
       // Clear error message after 5 seconds
       setTimeout(() => {
         setSaveStatus('idle');
@@ -356,7 +356,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <div className="flex justify-between text-sm text-gray-600 mb-1">
                       <span>Progress</span>
@@ -528,7 +528,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                     autoFocus
                   />
                 ) : (
-                  <h1 
+                  <h1
                     className="text-3xl font-bold text-gray-800 cursor-pointer hover:text-blue-600"
                     onClick={() => setIsEditingTitle(true)}
                   >
@@ -546,26 +546,24 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
             <div className="flex items-center gap-4">
               <span className="text-gray-600">{progress}% Complete</span>
               {saveMessage && (
-                <span className={`text-sm ${
-                  saveStatus === 'saved' ? 'text-green-600' : 
-                  saveStatus === 'error' ? 'text-red-600' : 
-                  'text-blue-600'
-                }`}>
+                <span className={`text-sm ${saveStatus === 'saved' ? 'text-green-600' :
+                    saveStatus === 'error' ? 'text-red-600' :
+                      'text-blue-600'
+                  }`}>
                   {saveMessage}
                 </span>
               )}
               <button
                 onClick={handleSaveProduct}
                 disabled={saveStatus === 'saving'}
-                className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
-                  saveStatus === 'saving' 
-                    ? 'bg-blue-500 text-white cursor-not-allowed' 
+                className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${saveStatus === 'saving'
+                    ? 'bg-blue-500 text-white cursor-not-allowed'
                     : saveStatus === 'saved'
-                    ? 'bg-green-600 text-white'
-                    : saveStatus === 'error'
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                      ? 'bg-green-600 text-white'
+                      : saveStatus === 'error'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
               >
                 {saveStatus === 'saving' && (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -580,10 +578,10 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                {saveStatus === 'saving' ? 'Saving...' : 
-                 saveStatus === 'saved' ? 'Saved!' : 
-                 saveStatus === 'error' ? 'Retry' : 
-                 'Save Product'}
+                {saveStatus === 'saving' ? 'Saving...' :
+                  saveStatus === 'saved' ? 'Saved!' :
+                    saveStatus === 'error' ? 'Retry' :
+                      'Save Product'}
               </button>
             </div>
           </div>
@@ -808,7 +806,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                 <span className="text-2xl">{category.icon}</span>
                 <h3 className="text-xl font-semibold text-gray-800">{category.name}</h3>
               </div>
-              
+
               <div className="mb-4">
                 <div className="flex justify-between text-sm text-gray-600 mb-2">
                   <span>Progress</span>

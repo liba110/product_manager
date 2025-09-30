@@ -68,44 +68,44 @@ export const useCrossBrowserProducts = () => {
             // Merge stored categories with default categories to ensure labels and descriptions are present
             const mergedCategories = Array.isArray(item.categories) && item.categories.length > 0
               ? defaultProductCategories.map(defaultCat => {
-                  const storedCat = item.categories.find((c: any) => c.id === defaultCat.id);
-                  if (storedCat) {
-                    // Merge stored category with default to ensure all task details are present
-                    if (storedCat.subSections && defaultCat.subSections) {
-                      const mergedSubSections: any = {};
-                      Object.keys(defaultCat.subSections).forEach(sectionKey => {
-                        const defaultSection = defaultCat.subSections![sectionKey];
-                        const storedSection = storedCat.subSections[sectionKey];
-                        if (storedSection) {
-                          // Merge tasks in subsection
-                          mergedSubSections[sectionKey] = {
-                            ...defaultSection,
-                            tasks: defaultSection.tasks.map(defaultTask => {
-                              const storedTask = storedSection.tasks.find((t: any) => t.id === defaultTask.id);
-                              return storedTask ? { ...defaultTask, completed: storedTask.completed || false } : defaultTask;
-                            })
-                          };
-                        } else {
-                          mergedSubSections[sectionKey] = defaultSection;
-                        }
-                      });
-                      return {
-                        ...defaultCat,
-                        subSections: mergedSubSections
-                      };
-                    } else if (storedCat.tasks && defaultCat.tasks) {
-                      // Merge regular tasks
-                      return {
-                        ...defaultCat,
-                        tasks: defaultCat.tasks.map(defaultTask => {
-                          const storedTask = storedCat.tasks.find((t: any) => t.id === defaultTask.id);
-                          return storedTask ? { ...defaultTask, completed: storedTask.completed || false } : defaultTask;
-                        })
-                      };
-                    }
+                const storedCat = item.categories.find((c: any) => c.id === defaultCat.id);
+                if (storedCat) {
+                  // Merge stored category with default to ensure all task details are present
+                  if (storedCat.subSections && defaultCat.subSections) {
+                    const mergedSubSections: any = {};
+                    Object.keys(defaultCat.subSections).forEach(sectionKey => {
+                      const defaultSection = defaultCat.subSections![sectionKey];
+                      const storedSection = storedCat.subSections[sectionKey];
+                      if (storedSection) {
+                        // Merge tasks in subsection
+                        mergedSubSections[sectionKey] = {
+                          ...defaultSection,
+                          tasks: defaultSection.tasks.map(defaultTask => {
+                            const storedTask = storedSection.tasks.find((t: any) => t.id === defaultTask.id);
+                            return storedTask ? { ...defaultTask, completed: storedTask.completed || false } : defaultTask;
+                          })
+                        };
+                      } else {
+                        mergedSubSections[sectionKey] = defaultSection;
+                      }
+                    });
+                    return {
+                      ...defaultCat,
+                      subSections: mergedSubSections
+                    };
+                  } else if (storedCat.tasks && defaultCat.tasks) {
+                    // Merge regular tasks
+                    return {
+                      ...defaultCat,
+                      tasks: defaultCat.tasks.map(defaultTask => {
+                        const storedTask = storedCat.tasks.find((t: any) => t.id === defaultTask.id);
+                        return storedTask ? { ...defaultTask, completed: storedTask.completed || false } : defaultTask;
+                      })
+                    };
                   }
-                  return defaultCat;
-                })
+                }
+                return defaultCat;
+              })
               : defaultProductCategories;
 
             return {
