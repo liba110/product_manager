@@ -16,9 +16,7 @@ const App: React.FC = () => {
     deleteProduct, 
     fetchProductDetails, 
     refreshProducts,
-    status,
-    useSupabase,
-    setUseSupabase
+    status
   } = useCrossBrowserProducts();
   const [activeTab, setActiveTab] = useState<'new' | 'existing' | 'draft'>('new');
   const [newTabProducts, setNewTabProducts] = useState<ProductWithTasks[]>([]);
@@ -273,17 +271,8 @@ const App: React.FC = () => {
               <div className="flex items-center gap-2 text-sm">
                 <div className={`w-2 h-2 rounded-full ${status.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className={status.isOnline ? 'text-green-600' : 'text-red-600'}>
-                  {status.isOnline ? (useSupabase ? 'Online (Supabase)' : 'Online (Local)') : 'Offline (Local)'}
+                  {status.isOnline ? (status.hasCloudSync ? 'Online (Cloud Sync)' : 'Online (Local)') : 'Offline (Local)'}
                 </span>
-                <label className="flex items-center gap-1 ml-4">
-                  <input
-                    type="checkbox"
-                    checked={useSupabase}
-                    onChange={(e) => setUseSupabase(e.target.checked)}
-                    className="w-3 h-3"
-                  />
-                  <span className="text-xs text-gray-600">Use Supabase</span>
-                </label>
               </div>
             </div>
             
@@ -310,7 +299,6 @@ const App: React.FC = () => {
       {activeTab === 'new' && (
         <NewProductApp
           products={newTabProducts}
-          allProducts={products}
           onSelectProduct={(product) => {
             setSelectedProduct(product);
             setCurrentView('product');
