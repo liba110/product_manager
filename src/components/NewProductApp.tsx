@@ -9,6 +9,7 @@ interface NewProductAppProps {
   onDeleteProduct: (productId: string) => void;
   onCreateProduct: (productData: { name: string; image: string | null; categories?: TaskCategory[] }) => Promise<ProductWithTasks | null>;
   onUpdateProduct: (product: ProductWithTasks) => void;
+  allProducts: ProductWithTasks[];
 }
 
 const NewProductApp: React.FC<NewProductAppProps> = ({ 
@@ -16,7 +17,8 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   onSelectProduct, 
   onDeleteProduct,
   onCreateProduct,
-  onUpdateProduct
+  onUpdateProduct,
+  allProducts
 }) => {
 
   const [currentView, setCurrentView] = useState<'main' | 'create' | 'category'>('main');
@@ -114,7 +116,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   };
 
   const exportAllProducts = () => {
-    const data = products.map(product => ({
+    const data = allProducts.map(product => ({
       name: product.name,
       image: product.image,
       createdAt: product.createdAt,
@@ -288,6 +290,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                 >
                   + Create
                 </button>
+                <p className="text-xl font-semibold text-gray-800">{allProducts.length}</p>
               </div>
             </div>
           </div>
@@ -307,7 +310,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => {
+            {allProducts.map((product) => {
               const progress = getProductProgress(product);
               return (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4">
