@@ -564,8 +564,8 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
               <span className="text-gray-600">{progress}% Complete</span>
               {saveMessage && (
                 <span className={`text-sm ${saveStatus === 'saved' ? 'text-green-600' :
-                    saveStatus === 'error' ? 'text-red-600' :
-                      'text-blue-600'
+                  saveStatus === 'error' ? 'text-red-600' :
+                    'text-blue-600'
                   }`}>
                   {saveMessage}
                 </span>
@@ -574,12 +574,12 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                 onClick={handleSaveProduct}
                 disabled={saveStatus === 'saving'}
                 className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${saveStatus === 'saving'
-                    ? 'bg-blue-500 text-white cursor-not-allowed'
-                    : saveStatus === 'saved'
-                      ? 'bg-green-600 text-white'
-                      : saveStatus === 'error'
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-green-600 text-white hover:bg-green-700'
+                  ? 'bg-blue-500 text-white cursor-not-allowed'
+                  : saveStatus === 'saved'
+                    ? 'bg-green-600 text-white'
+                    : saveStatus === 'error'
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
               >
                 {saveStatus === 'saving' && (
