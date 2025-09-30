@@ -1,6 +1,6 @@
 // Simple cross-browser storage using JSONBin (free service)
 const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3';
-const BIN_ID = 'product-management-bolt-host';
+const BIN_ID = 'product-management-' + btoa(window.location.hostname).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
 
 export interface StorageProduct {
   id: string;
@@ -30,7 +30,7 @@ class CrossBrowserStorage {
   private async getBinId(): Promise<string> {
     if (this.binId) return this.binId;
     
-    const stored = localStorage.getItem('jsonbin_id_v2');
+    const stored = localStorage.getItem('jsonbin_id');
     if (stored) {
       this.binId = stored;
       return stored;
@@ -42,8 +42,7 @@ class CrossBrowserStorage {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Bin-Name': BIN_ID,
-          'X-Master-Key': '$2a$10$8K8K8K8K8K8K8K8K8K8K8O'
+          'X-Bin-Name': BIN_ID
         },
         body: JSON.stringify({ products: [] })
       });
@@ -51,7 +50,7 @@ class CrossBrowserStorage {
       if (response.ok) {
         const data = await response.json();
         this.binId = data.metadata.id;
-        localStorage.setItem('jsonbin_id_v2', this.binId);
+        localStorage.setItem('jsonbin_id', this.binId);
         return this.binId;
       }
     } catch (error) {
@@ -92,15 +91,12 @@ class CrossBrowserStorage {
       await fetch(`${JSONBIN_BASE_URL}/b/${binId}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': '$2a$10$8K8K8K8K8K8K8K8K8K8K8O'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ products })
       });
-      
-      console.log('✅ Saved to cloud successfully');
     } catch (error) {
-      console.log('❌ Cloud sync failed:', error);
+      console.log('Cloud sync failed, continuing with local storage');
     }
   }
 
@@ -115,11 +111,10 @@ class CrossBrowserStorage {
       const response = await fetch(`${JSONBIN_BASE_URL}/b/${binId}/latest`);
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Loaded from cloud successfully');
         return data.record?.products || [];
       }
     } catch (error) {
-      console.log('❌ Cloud load failed:', error);
+      console.log('Cloud load failed, using local storage');
     }
 
     return null;

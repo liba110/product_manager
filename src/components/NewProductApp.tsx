@@ -204,8 +204,6 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     setSaveStatus('saving');
     setSaveMessage('Saving product...');
     
-    console.log('🚀 Creating product:', productName);
-
     try {
       if (selectedProduct) {
         // Update the existing product
@@ -229,12 +227,11 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
         const newProduct = await onCreateProduct(productData);
         
         if (newProduct) {
-          console.log('🔄 Updating product:', newProduct.name);
+          setSelectedProduct(newProduct);
           setSaveStatus('saved');
           setSaveMessage('Product created and saved!');
         } else {
-          setSaveStatus('error');
-          setSaveMessage('Failed to create product. Please try again.');
+          throw new Error('Failed to create product');
         }
       }
       

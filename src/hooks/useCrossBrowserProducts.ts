@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { simpleCrossBrowserStorage, StorageProduct } from '../lib/simpleStorage';
+import { crossBrowserStorage, StorageProduct } from '../lib/jsonStorage';
 import { defaultProductCategories, TaskCategory } from '../lib/productTemplates';
 
 export interface ProductWithTasks extends Omit<StorageProduct, 'categories'> {
@@ -14,7 +14,7 @@ export const useCrossBrowserProducts = () => {
 
   // Update status
   const updateStatus = () => {
-    setStatus(simpleCrossBrowserStorage.getStatus());
+    setStatus(crossBrowserStorage.getStatus());
   };
 
   // Load products
@@ -23,7 +23,7 @@ export const useCrossBrowserProducts = () => {
       setLoading(true);
       setError(null);
       
-      const storageProducts = await simpleCrossBrowserStorage.loadProducts();
+      const storageProducts = await crossBrowserStorage.loadProducts();
       const productsWithCategories = storageProducts.map(product => ({
         ...product,
         categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
@@ -54,8 +54,6 @@ export const useCrossBrowserProducts = () => {
       categories: productCategories
     };
 
-    console.log('💾 Saving product:', updatedProduct.name);
-
     // Update local state
     setProducts(prev => {
       const existingIndex = prev.findIndex(p => p.id === updatedProduct.id);
@@ -68,9 +66,8 @@ export const useCrossBrowserProducts = () => {
         newProducts = [updatedProduct, ...prev];
       }
       
-      console.log('💾 Saving to storage:', newProducts.length, 'products');
       // Save to storage (local + cloud)
-      simpleCrossBrowserStorage.saveProducts(newProducts.map(p => ({
+      crossBrowserStorage.saveProducts(newProducts.map(p => ({
         ...p,
         categories: p.categories
       })));
@@ -88,7 +85,7 @@ export const useCrossBrowserProducts = () => {
       const newProducts = prev.filter(p => p.id !== productId);
       
       // Save to storage
-      simpleCrossBrowserStorage.saveProducts(newProducts.map(p => ({
+      crossBrowserStorage.saveProducts(newProducts.map(p => ({
         ...p,
         categories: p.categories
       })));
