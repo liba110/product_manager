@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { simpleCrossBrowserStorage, StorageProduct } from '../lib/simpleStorage';
 import { defaultProductCategories, TaskCategory } from '../lib/productTemplates';
 
@@ -11,6 +12,7 @@ export const useCrossBrowserProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState({ isOnline: false, hasCloudSync: false });
+  const [useSupabase, setUseSupabase] = useState(true);
 
   // Update status
   const updateStatus = () => {
@@ -23,13 +25,61 @@ export const useCrossBrowserProducts = () => {
       setLoading(true);
       setError(null);
       
-      const storageProducts = await simpleCrossBrowserStorage.loadProducts();
-      const productsWithCategories = storageProducts.map(product => ({
-        ...product,
-        categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
-      }));
+      console.log('🔄 Loading products...');
       
-      setProducts(productsWithCategories);
+      if (useSupabase && status.isOnline) {
+        console.log('📡 Trying Supabase...');
+        try {
+          const { data, error: supabaseError } = await supabase
+            .from('products')
+            .select('*')
+            .order('updated_at', { ascending: false });
+
+          if (supabaseError) {
+            console.error('❌ Supabase error:', supabaseError);
+            throw supabaseError;
+          }
+
+          console.log('✅ Supabase data:', data?.length || 0, 'products');
+          
+          // Convert Supabase data to our format
+          const supabaseProducts = (data || []).map(item => ({
+            id: item.id,
+            name: item.name,
+            image: item.image_url,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            categories: Array.isArray(item.categories) ? item.categories : defaultProductCategories
+          }));
+          
+          setProducts(supabaseProducts);
+          
+          // Also save to local storage as backup
+          await simpleCrossBrowserStorage.saveProducts(supabaseProducts.map(p => ({
+            ...p,
+            categories: p.categories
+          })));
+          
+        } catch (supabaseError) {
+          console.error('❌ Supabase failed, falling back to local storage');
+          const storageProducts = await simpleCrossBrowserStorage.loadProducts();
+          const productsWithCategories = storageProducts.map(product => ({
+            ...product,
+            categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
+          }));
+          setProducts(productsWithCategories);
+          setError('Using local storage - Supabase connection failed');
+        }
+      } else {
+        console.log('💾 Using local storage only');
+        const storageProducts = await simpleCrossBrowserStorage.loadProducts();
+        const productsWithCategories = storageProducts.map(product => ({
+          ...product,
+          categories: Array.isArray(product.categories) ? product.categories : defaultProductCategories
+        }));
+        setProducts(productsWithCategories);
+      }
+      
       updateStatus();
     } catch (err) {
       console.error('Error loading products:', err);
@@ -55,6 +105,34 @@ export const useCrossBrowserProducts = () => {
     };
 
     console.log('💾 Saving product:', updatedProduct.name);
+
+    // Save to Supabase first if available
+    if (useSupabase && status.isOnline) {
+      try {
+        console.log('📡 Saving to Supabase...');
+        const supabaseData = {
+          id: updatedProduct.id,
+          name: updatedProduct.name,
+          image_url: updatedProduct.image,
+          categories: updatedProduct.categories,
+          created_at: updatedProduct.createdAt,
+          updated_at: updatedProduct.updatedAt,
+          user_id: null
+        };
+
+        const { error: supabaseError } = await supabase
+          .from('products')
+          .upsert(supabaseData);
+
+        if (supabaseError) {
+          console.error('❌ Supabase save error:', supabaseError);
+        } else {
+          console.log('✅ Saved to Supabase successfully');
+        }
+      } catch (err) {
+        console.error('❌ Supabase save failed:', err);
+      }
+    }
 
     // Update local state
     setProducts(prev => {
@@ -84,6 +162,25 @@ export const useCrossBrowserProducts = () => {
 
   // Delete product
   const deleteProduct = async (productId: string) => {
+    // Delete from Supabase first if available
+    if (useSupabase && status.isOnline) {
+      try {
+        console.log('📡 Deleting from Supabase...');
+        const { error: supabaseError } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', productId);
+
+        if (supabaseError) {
+          console.error('❌ Supabase delete error:', supabaseError);
+        } else {
+          console.log('✅ Deleted from Supabase successfully');
+        }
+      } catch (err) {
+        console.error('❌ Supabase delete failed:', err);
+      }
+    }
+
     setProducts(prev => {
       const newProducts = prev.filter(p => p.id !== productId);
       
@@ -146,6 +243,8 @@ export const useCrossBrowserProducts = () => {
     deleteProduct,
     fetchProductDetails,
     refreshProducts: loadProducts,
-    status
+    status,
+    useSupabase,
+    setUseSupabase
   };
 };
