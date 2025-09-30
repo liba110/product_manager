@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Package, ChevronLeft } from 'lucide-react';
-import { useProducts, ProductWithTasks } from './hooks/useProducts';
+import { useCrossBrowserProducts, ProductWithTasks } from './hooks/useCrossBrowserProducts';
 import { defaultProductCategories, TaskCategory } from './lib/productTemplates';
 import NewProductApp from './components/NewProductApp';
 import ExistingProductApp from './components/ExistingProductApp';
@@ -8,7 +8,18 @@ import DraftProductApp from './components/DraftProductApp';
 import CodeExporter from './components/CodeExporter';
 
 const App: React.FC = () => {
-  const { products, loading, error, saveProduct, deleteProduct, fetchProductDetails, refreshProducts } = useProducts();
+  const { 
+    products, 
+    loading, 
+    error, 
+    saveProduct, 
+    deleteProduct, 
+    fetchProductDetails, 
+    refreshProducts,
+    status,
+    useSupabase,
+    setUseSupabase
+  } = useCrossBrowserProducts();
   const [activeTab, setActiveTab] = useState<'new' | 'existing' | 'draft'>('new');
   const [newTabProducts, setNewTabProducts] = useState<ProductWithTasks[]>([]);
   const [currentView, setCurrentView] = useState<'dashboard' | 'product'>('dashboard');
@@ -259,6 +270,21 @@ const App: React.FC = () => {
                 <Package className="w-6 h-6 text-blue-600" />
               </div>
               <h1 className="text-2xl font-bold text-gray-800">Product Manager</h1>
+              <div className="flex items-center gap-2 text-sm">
+                <div className={`w-2 h-2 rounded-full ${status.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={status.isOnline ? 'text-green-600' : 'text-red-600'}>
+                  {status.isOnline ? (useSupabase ? 'Online (Supabase)' : 'Online (Local)') : 'Offline (Local)'}
+                </span>
+                <label className="flex items-center gap-1 ml-4">
+                  <input
+                    type="checkbox"
+                    checked={useSupabase}
+                    onChange={(e) => setUseSupabase(e.target.checked)}
+                    className="w-3 h-3"
+                  />
+                  <span className="text-xs text-gray-600">Use Supabase</span>
+                </label>
+              </div>
             </div>
             
             <div className="flex gap-2">
@@ -284,6 +310,7 @@ const App: React.FC = () => {
       {activeTab === 'new' && (
         <NewProductApp
           products={newTabProducts}
+          allProducts={products}
           onSelectProduct={(product) => {
             setSelectedProduct(product);
             setCurrentView('product');
