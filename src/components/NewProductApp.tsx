@@ -38,6 +38,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   const [exportPassword, setExportPassword] = useState('');
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [sessionCreatedCount, setSessionCreatedCount] = useState(0);
 
   // Async handler for opening a product and fetching its image if needed
   const handleOpenProduct = async (product: ProductWithTasks) => {
@@ -117,10 +118,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     // Save immediately and show status
     setSaveStatus('saving');
     try {
-      const savedProduct = await onUpdateProduct(updatedProduct);
-      // Update selectedProduct with the saved product that has the real UUID
-      setSelectedProduct(savedProduct);
-
+      await onUpdateProduct(updatedProduct);
       // Show saved confirmation briefly
       setTimeout(() => {
         setSaveStatus('saved');
@@ -267,7 +265,9 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
         const newProduct = await onCreateProduct(productData);
 
         if (newProduct) {
+          setSelectedProduct(newProduct); // <-- Fix: set selectedProduct to the real product
           console.log('🔄 Updating product:', newProduct.name);
+          setSessionCreatedCount(prev => prev + 1); // Increment session counter
           setSaveStatus('saved');
           setSaveMessage('Product created and saved!');
         } else {
@@ -308,7 +308,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
               </div>
               <div>
                 <p className="text-sm text-gray-600">All Products</p>
-                <p className="text-xl font-semibold text-gray-800">{products.length}</p>
+                <p className="text-xl font-semibold text-gray-800">{allProducts.length}</p>
               </div>
             </div>
           </div>
@@ -321,12 +321,17 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
               <div>
                 <p className="text-sm text-gray-600">New Product</p>
                 <button
-                  onClick={() => setCurrentView('create')}
+                  onClick={() => {
+                    setCurrentView('create');
+                    window.scrollTo(0, 0);
+                  }}
                   className="text-xl font-semibold text-blue-600 hover:text-blue-700"
                 >
                   + Create
                 </button>
-                <p className="text-xl font-semibold text-gray-800">{allProducts.length}</p>
+                {sessionCreatedCount > 0 && (
+                  <p className="text-sm text-gray-600 mt-1">Created this session: {sessionCreatedCount}</p>
+                )}
               </div>
             </div>
           </div>
@@ -521,6 +526,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                   setSelectedProduct(null);
                   setProductName('New Product');
                   setProductImage(null);
+                  window.scrollTo(0, 0);
                 }}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
@@ -680,6 +686,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                       });
                     }
                     setCurrentView('category');
+                    window.scrollTo(0, 0);
                   }}
                   className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200"
                 >
@@ -713,7 +720,10 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setCurrentView('create')}
+                onClick={() => {
+                  setCurrentView('create');
+                  window.scrollTo(0, 0);
+                }}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />

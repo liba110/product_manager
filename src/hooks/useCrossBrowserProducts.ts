@@ -15,6 +15,7 @@ export const useCrossBrowserProducts = () => {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState({ isOnline: false, hasCloudSync: false });
   const [useSupabase, setUseSupabase] = useState(true);
+  const [tempIdMap, setTempIdMap] = useState<Map<string, string>>(new Map());
 
   // Calculate progress from categories
   const calculateProgress = (categories: TaskCategory[]): number => {
@@ -154,11 +155,30 @@ export const useCrossBrowserProducts = () => {
     const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
     // Check if product already exists in the array
-    const existingProduct = products.find(p => p.id === product.id);
+    let existingProduct = products.find(p => p.id === product.id);
+
+    // If not found and product.id is a temp ID, check if we have a mapping
+    if (!existingProduct && product.id && product.id.startsWith('temp-')) {
+      const realId = tempIdMap.get(product.id);
+      if (realId) {
+        existingProduct = products.find(p => p.id === realId);
+      }
+    }
 
     // Use existing ID if product exists, otherwise generate new UUID for truly new products
-    const generatedId = existingProduct ? existingProduct.id : (product.id && isValidUUID(product.id) ? product.id : uuidv4());
-    console.log('🆔 Generated ID at start of saveProduct:', generatedId, 'existing product:', !!existingProduct); // Log the generated ID at the start
+    let generatedId: string;
+    if (existingProduct) {
+      generatedId = existingProduct.id;
+    } else if (product.id && isValidUUID(product.id)) {
+      generatedId = product.id;
+    } else {
+      generatedId = uuidv4();
+      // If the original ID was a temp ID, store the mapping
+      if (product.id && product.id.startsWith('temp-')) {
+        setTempIdMap(prev => new Map(prev.set(product.id, generatedId)));
+      }
+    }
+    console.log('🆔 Generated ID at start of saveProduct:', generatedId, 'existing product:', !!existingProduct, 'original id:', product.id); // Log the generated ID at the start
 
     // Calculate progress from categories
     const progress = calculateProgress(productCategories);
