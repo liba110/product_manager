@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { defaultProductCategories, TaskCategory, ChecklistItem } from '../lib/productTemplates';
 
 // Re-export types for backward compatibility
@@ -29,72 +28,13 @@ export const useProducts = () => {
   const [products, setProducts] = useState<ProductWithTasks[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Monitor online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
   // Load products from localStorage
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      if (isOnline) {
-        // Try Supabase first
-        const { data, error: supabaseError } = await supabase
-          .from('products')
-          .select('*')
-          .order('updated_at', { ascending: false });
-
-        if (supabaseError) {
-          console.error('Supabase error:', supabaseError);
-          // Fallback to localStorage
-          loadFromLocalStorage();
-          setError('Using offline mode - Supabase connection failed');
-        } else {
-          // Convert Supabase data to our format
-          const convertedProducts = (data || []).map(item => ({
-            id: item.id,
-            name: item.name,
-            image: item.image_url,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at,
-            categories: Array.isArray(item.categories) ? item.categories : defaultProductCategories
-          }));
-          
-          setProducts(convertedProducts);
-          // Also save to localStorage as backup
-          saveToLocalStorage(convertedProducts);
-        }
-      } else {
-        // Offline - use localStorage
-        loadFromLocalStorage();
-        setError('Offline mode - using local storage');
-      }
-    } catch (err) {
-      console.error('Error loading products:', err);
-      // Fallback to localStorage
-      loadFromLocalStorage();
-      setError('Using offline mode');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load from localStorage (fallback)
-  const loadFromLocalStorage = () => {
-    try {
       const savedProducts = localStorage.getItem('products');
       if (savedProducts) {
         const parsedProducts = JSON.parse(savedProducts);
@@ -102,11 +42,17 @@ export const useProducts = () => {
       } else {
         setProducts([]);
       }
+      
+      setError(null);
     } catch (err) {
-      console.error('Error loading from localStorage:', err);
+      console.error('Error loading products:', err);
+      setError(null); // Don't show errors for localStorage
       setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
+
   // Save products to localStorage
   const saveToLocalStorage = (products: ProductWithTasks[]) => {
     try {
@@ -155,33 +101,6 @@ export const useProducts = () => {
       categories: productCategories
     };
 
-    try {
-      if (isOnline) {
-        // Save to Supabase
-        const supabaseData = {
-          id: updatedProduct.id,
-          name: updatedProduct.name,
-          image_url: updatedProduct.image,
-          categories: updatedProduct.categories,
-          created_at: updatedProduct.createdAt,
-          updated_at: updatedProduct.updatedAt
-        };
-
-        const { error: supabaseError } = await supabase
-          .from('products')
-          .upsert(supabaseData);
-
-        if (supabaseError) {
-          console.error('Supabase save error:', supabaseError);
-          // Continue with local save even if Supabase fails
-        }
-      }
-    } catch (err) {
-      console.error('Error saving to Supabase:', err);
-      // Continue with local save
-    }
-
-    // Always save to localStorage as backup
     setProducts(prev => {
       const existingIndex = prev.findIndex(p => p.id === updatedProduct.id);
       let newProducts;
@@ -205,25 +124,6 @@ export const useProducts = () => {
 
   // Delete product
   const deleteProduct = async (productId: string) => {
-    try {
-      if (isOnline) {
-        // Delete from Supabase
-        const { error: supabaseError } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', productId);
-
-        if (supabaseError) {
-          console.error('Supabase delete error:', supabaseError);
-          // Continue with local delete even if Supabase fails
-        }
-      }
-    } catch (err) {
-      console.error('Error deleting from Supabase:', err);
-      // Continue with local delete
-    }
-
-    // Always delete from local state
     setProducts(prev => {
       const newProducts = prev.filter(p => p.id !== productId);
       saveToLocalStorage(newProducts);
@@ -233,7 +133,7 @@ export const useProducts = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [isOnline]);
+  }, []);
 
   return {
     products,
@@ -242,7 +142,6 @@ export const useProducts = () => {
     saveProduct,
     deleteProduct,
     fetchProductDetails,
-    refreshProducts: loadProducts,
-    isOnline
+    refreshProducts: loadProducts
   };
 };

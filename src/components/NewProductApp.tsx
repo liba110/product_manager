@@ -32,26 +32,6 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
-  const [showExportPasswordModal, setShowExportPasswordModal] = useState(false);
-  const [exportPassword, setExportPassword] = useState('');
-  const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
-
-  const requireExportPassword = (action: () => void) => {
-    setPendingExportAction(() => action);
-    setShowExportPasswordModal(true);
-  };
-
-  const confirmExport = () => {
-    if (exportPassword === 'Admin1' && pendingExportAction) {
-      pendingExportAction();
-      setShowExportPasswordModal(false);
-      setExportPassword('');
-      setPendingExportAction(null);
-    } else if (exportPassword.trim() && exportPassword !== 'Admin1') {
-      alert('Incorrect password. Please try again.');
-      setExportPassword('');
-    }
-  };
 
   const toggleTask = (categoryId: string, taskId: string, sectionKey?: string) => {
     if (!selectedProduct) return;
@@ -295,7 +275,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800">All Products</h2>
             <button
-              onClick={() => requireExportPassword(exportAllProducts)}
+              onClick={exportAllProducts}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Download className="w-4 h-4" />
@@ -350,7 +330,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                       Open
                     </button>
                     <button
-                      onClick={() => requireExportPassword(() => exportProduct(product))}
+                      onClick={() => exportProduct(product)}
                       className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
                     >
                       <Download className="w-4 h-4" />
@@ -398,44 +378,6 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                     setShowDeleteModal(false);
                     setProductToDelete(null);
                     setDeletePassword('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Export password confirmation modal */}
-        {showExportPasswordModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Export Access Required</h3>
-              <p className="text-gray-600 mb-4">Enter password to export data:</p>
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={exportPassword}
-                onChange={(e) => setExportPassword(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && confirmExport()}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-4"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={confirmExport}
-                  disabled={!exportPassword.trim()}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Export Data
-                </button>
-                <button
-                  onClick={() => {
-                    setShowExportPasswordModal(false);
-                    setExportPassword('');
-                    setPendingExportAction(null);
                   }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
