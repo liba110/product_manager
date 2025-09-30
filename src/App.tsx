@@ -16,7 +16,9 @@ const App: React.FC = () => {
     deleteProduct, 
     fetchProductDetails, 
     refreshProducts,
-    status
+    status,
+    useSupabase,
+    setUseSupabase
   } = useCrossBrowserProducts();
   const [activeTab, setActiveTab] = useState<'new' | 'existing' | 'draft'>('new');
   const [newTabProducts, setNewTabProducts] = useState<ProductWithTasks[]>([]);
@@ -308,6 +310,7 @@ const App: React.FC = () => {
       {activeTab === 'new' && (
         <NewProductApp
           products={newTabProducts}
+          allProducts={products}
           onSelectProduct={(product) => {
             setSelectedProduct(product);
             setCurrentView('product');
