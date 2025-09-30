@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Package, ChevronLeft, Upload, Copy, Download, Trash2, CreditCard as Edit } from 'lucide-react';
-import { ProductWithTasks } from '../hooks/useProducts';
+import { ProductWithTasks } from '../hooks/useCrossBrowserProducts';
 import { defaultProductCategories, TaskCategory } from '../lib/productTemplates';
+import { useCrossBrowserProducts } from '../hooks/useCrossBrowserProducts';
 
 interface NewProductAppProps {
   products: ProductWithTasks[];
-  onSelectProduct: (product: ProductWithTasks) => void;
   onDeleteProduct: (productId: string) => void;
   onCreateProduct: (productData: { name: string; image: string | null; categories?: TaskCategory[] }) => Promise<ProductWithTasks | null>;
   onUpdateProduct: (product: ProductWithTasks) => void;
@@ -14,12 +14,12 @@ interface NewProductAppProps {
 
 const NewProductApp: React.FC<NewProductAppProps> = ({ 
   products, 
-  onSelectProduct, 
   onDeleteProduct,
   onCreateProduct,
   onUpdateProduct,
   allProducts
 }) => {
+  const { fetchProductImage } = useCrossBrowserProducts();
 
   const [currentView, setCurrentView] = useState<'main' | 'create' | 'category'>('main');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -37,6 +37,26 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   const [showExportPasswordModal, setShowExportPasswordModal] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  // Async handler for opening a product and fetching its image if needed
+  const handleOpenProduct = async (product: ProductWithTasks) => {
+    setImageLoading(true);
+    setSelectedProduct(product);
+    setProductName(product.name || 'New Product');
+    setProductImage(product.image);
+    
+    // Fetch image lazily if not already loaded
+    if (!product.image) {
+      const imageUrl = await fetchProductImage(product.id);
+      setProductImage(imageUrl);
+      // Update the selected product with the fetched image
+      setSelectedProduct(prev => prev ? { ...prev, image: imageUrl } : null);
+    }
+    
+    setImageLoading(false);
+    setCurrentView('create');
+  };
 
   const requireExportPassword = (action: () => void) => {
     setPendingExportAction(() => action);
@@ -86,7 +106,11 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
       }
     });
     
-    const updatedProduct = { ...selectedProduct, categories: updatedCategories };
+    // Calculate new progress after task toggle
+    const tempProduct = { ...selectedProduct, categories: updatedCategories };
+    const newProgress = getProductProgress(tempProduct);
+    
+    const updatedProduct = { ...tempProduct, progress: newProgress };
     setSelectedProduct(updatedProduct);
     
     // Save immediately and show status
@@ -210,22 +234,25 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
     try {
       if (selectedProduct) {
-        // Update the existing product
+        // Update the existing product - recalculate progress
+        const currentProgress = getProductProgress(selectedProduct);
         const updatedProduct = { 
           ...selectedProduct, 
           name: selectedProduct.name, 
-          image: selectedProduct.image || productImage 
+          image: selectedProduct.image || productImage,
+          progress: currentProgress
         };
         setSelectedProduct(updatedProduct);
         await onUpdateProduct(updatedProduct);
         setSaveStatus('saved');
         setSaveMessage('Product saved successfully!');
       } else {
-        // Create new product
+        // Create new product - initialize with 0 progress
         const productData = {
           name: productName,
           image: productImage,
-          categories: defaultProductCategories
+          categories: defaultProductCategories,
+          progress: 0
         };
         
         const newProduct = await onCreateProduct(productData);
@@ -311,7 +338,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {allProducts.map((product) => {
-              const progress = getProductProgress(product);
+              const progress = product.progress || 0; // Use stored progress from database
               return (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
@@ -345,12 +372,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setProductName(product.name);
-                        setProductImage(product.image);
-                        setCurrentView('create');
-                      }}
+                      onClick={() => handleOpenProduct(product)}
                       className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
                     >
                       Open
@@ -457,8 +479,18 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
   // Create page view
   if (currentView === 'create') {
-    const currentProduct = selectedProduct || { name: productName, image: productImage, categories: defaultProductCategories };
-    const progress = selectedProduct ? getProductProgress(selectedProduct) : 0;
+    if (imageLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading product...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const progress = selectedProduct ? (selectedProduct.progress || 0) : 0; // Use stored progress from database
 
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -561,7 +593,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
             {(selectedProduct?.image || productImage) ? (
               <div className="relative">
                 <img
-                  src={selectedProduct?.image || productImage}
+                  src={selectedProduct?.image || productImage || ''}
                   alt="Product"
                   className="w-full h-64 object-cover rounded-lg"
                 />
@@ -628,7 +660,8 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                         image: productImage,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        categories: defaultProductCategories
+                        categories: defaultProductCategories,
+                        progress: 0
                       });
                     }
                     setCurrentView('category');

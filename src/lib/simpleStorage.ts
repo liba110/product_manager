@@ -8,6 +8,7 @@ export interface StorageProduct {
   categories: any[];
   createdAt: string;
   updatedAt: string;
+  progress?: number;
 }
 
 class SimpleCrossBrowserStorage {
@@ -84,7 +85,7 @@ class SimpleCrossBrowserStorage {
         console.log('✅ Cloud sync attempted');
       }
     } catch (error) {
-      console.log('❌ Cloud sync failed (expected):', error.message);
+      console.log('❌ Cloud sync failed (expected):', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
