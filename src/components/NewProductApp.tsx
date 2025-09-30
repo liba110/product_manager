@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Package, ChevronLeft, Upload, Copy, Download, Trash2, CreditCard as Edit } from 'lucide-react';
 import { ProductWithTasks } from '../hooks/useProducts';
 import { defaultProductCategories, TaskCategory } from '../lib/productTemplates';
+import { useCrossBrowserProducts } from '../hooks/useCrossBrowserProducts';
 
 interface NewProductAppProps {
   products: ProductWithTasks[];
@@ -20,6 +21,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   onUpdateProduct,
   allProducts
 }) => {
+  const { fetchProductImage } = useCrossBrowserProducts();
 
   const [currentView, setCurrentView] = useState<'main' | 'create' | 'category'>('main');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -37,6 +39,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   const [showExportPasswordModal, setShowExportPasswordModal] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
   const [pendingExportAction, setPendingExportAction] = useState<(() => void) | null>(null);
+  const [imageLoading, setImageLoading] = useState(false); // Add loading state for image fetch
 
   const requireExportPassword = (action: () => void) => {
     setPendingExportAction(() => action);
@@ -60,7 +63,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
     const updatedCategories = selectedProduct.categories.map(category => {
       if (category.id !== categoryId) return category;
-    
+
       if (sectionKey && category.subSections) {
         // Handle subsection tasks
         return {
@@ -85,14 +88,17 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
         };
       }
     });
-    
+
     const updatedProduct = { ...selectedProduct, categories: updatedCategories };
-    setSelectedProduct(updatedProduct);
-    
+    const progress = getProductProgress(updatedProduct); // Calculate progress
+    const productWithProgress = { ...updatedProduct, progress }; // Include progress in the product
+
+    setSelectedProduct(productWithProgress);
+
     // Save immediately and show status
     setSaveStatus('saving');
-    onUpdateProduct(updatedProduct);
-    
+    onUpdateProduct(productWithProgress); // Pass product with progress to the update function
+
     // Show saved confirmation briefly
     setTimeout(() => {
       setSaveStatus('saved');
@@ -156,18 +162,19 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
   };
 
   const getProductProgress = (product: ProductWithTasks) => {
+    if (!product || !Array.isArray(product.categories)) return 0;
     let totalTasks = 0;
     let completedTasks = 0;
 
     product.categories.forEach(category => {
       if (category.subSections) {
         Object.values(category.subSections).forEach(section => {
-          totalTasks += section.tasks.length;
-          completedTasks += section.tasks.filter(task => task.completed).length;
+          totalTasks += Array.isArray(section.tasks) ? section.tasks.length : 0;
+          completedTasks += Array.isArray(section.tasks) ? section.tasks.filter(task => task.completed).length : 0;
         });
       } else {
-        totalTasks += category.tasks.length;
-        completedTasks += category.tasks.filter(task => task.completed).length;
+        totalTasks += Array.isArray(category.tasks) ? category.tasks.length : 0;
+        completedTasks += Array.isArray(category.tasks) ? category.tasks.filter(task => task.completed).length : 0;
       }
     });
 
@@ -259,6 +266,32 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
     }
   };
 
+  // Async handler for opening a product and fetching its image if needed
+  const handleOpenProduct = async (product: ProductWithTasks) => {
+    setImageLoading(true);
+    const safeProduct = { ...product, name: product.name || 'New Product' };
+    setSelectedProduct(safeProduct);
+    setProductName(safeProduct.name);
+    if (!product.image) {
+      const imageUrl = await fetchProductImage(product.id);
+      setProductImage(imageUrl);
+    } else {
+      setProductImage(product.image);
+    }
+    setImageLoading(false);
+    setCurrentView('create');
+  };
+
+  // Defensive check for products array
+  if (!Array.isArray(products)) {
+    return <div className="p-8 text-center text-red-600">No products found or data is invalid.</div>;
+  }
+
+  // Defensive check for allProducts array
+  if (!Array.isArray(allProducts)) {
+    return <div className="p-8 text-center text-red-600">No products found or data is invalid.</div>;
+  }
+
   // Main page view
   if (currentView === 'main') {
     return (
@@ -345,12 +378,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setProductName(product.name);
-                        setProductImage(product.image);
-                        setCurrentView('create');
-                      }}
+                      onClick={() => handleOpenProduct(product)}
                       className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
                     >
                       Open
@@ -426,7 +454,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                 value={exportPassword}
                 onChange={(e) => setExportPassword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && confirmExport()}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-4"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
                 autoFocus
               />
               <div className="flex gap-3">
@@ -457,6 +485,17 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
   // Create page view
   if (currentView === 'create') {
+    if (imageLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading image...</p>
+          </div>
+        </div>
+      );
+    }
+
     const currentProduct = selectedProduct || { name: productName, image: productImage, categories: defaultProductCategories };
     const progress = selectedProduct ? getProductProgress(selectedProduct) : 0;
 
@@ -482,7 +521,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                 {isEditingTitle ? (
                   <input
                     type="text"
-                    value={selectedProduct ? selectedProduct.name : productName}
+                    value={(selectedProduct ? selectedProduct.name : productName) || ''}
                     onChange={(e) => {
                       if (selectedProduct) {
                         setSelectedProduct({ ...selectedProduct, name: e.target.value });
@@ -561,7 +600,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
             {(selectedProduct?.image || productImage) ? (
               <div className="relative">
                 <img
-                  src={selectedProduct?.image || productImage}
+                  src={selectedProduct?.image || productImage || undefined}
                   alt="Product"
                   className="w-full h-64 object-cover rounded-lg"
                 />
@@ -651,7 +690,12 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
 
   // Category page view (e.g., Shopify)
   if (currentView === 'category' && selectedCategory) {
-    const categories = selectedProduct?.categories || defaultProductCategories;
+    // If selectedProduct is not set, redirect to main view
+    if (!selectedProduct) {
+      setCurrentView('main');
+      return null;
+    }
+    const categories = selectedProduct.categories || defaultProductCategories;
     const category = categories.find(cat => cat.id === selectedCategory);
 
     if (!category) return null;
@@ -689,7 +733,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                   <input
                     type="text"
                     placeholder="Enter BC link"
-                    value={bcLink}
+                    value={bcLink || ''}
                     onChange={(e) => setBcLink(e.target.value)}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -708,7 +752,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                   <input
                     type="text"
                     placeholder="Enter AA link"
-                    value={aaLink}
+                    value={aaLink || ''}
                     onChange={(e) => setAaLink(e.target.value)}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -756,9 +800,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                             className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                           />
                           <div className="flex-1">
-                            <h4 className={`font-medium ${task.completed ? 'text-gray-600' : 'text-gray-800'}`}>
-                              {task.label}
-                            </h4>
+                            <h4 className={`font-medium ${task.completed ? 'text-gray-600' : 'text-gray-800'}`}>{task.label}</h4>
                             <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                           </div>
                         </div>
@@ -788,7 +830,6 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                   ></div>
                 </div>
               </div>
-
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {category.tasks.map((task) => (
                   <div key={task.id} className="flex items-start gap-3">
@@ -799,9 +840,7 @@ const NewProductApp: React.FC<NewProductAppProps> = ({
                       className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${task.completed ? 'text-gray-600' : 'text-gray-800'}`}>
-                        {task.label}
-                      </p>
+                      <p className={`text-sm font-medium ${task.completed ? 'text-gray-600' : 'text-gray-800'}`}>{task.label}</p>
                       <p className="text-xs text-gray-600 mt-1">{task.description}</p>
                     </div>
                   </div>

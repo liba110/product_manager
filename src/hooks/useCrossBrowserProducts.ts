@@ -20,6 +20,28 @@ export const useCrossBrowserProducts = () => {
     setStatus(simpleCrossBrowserStorage.getStatus());
   };
 
+  const callEdgeFunction = async (action: string, productId?: string, data?: any) => {
+    const serviceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnpmYWlnZWN5ZGhneXFoaWhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODI5NzAzNywiZXhwIjoyMDczODczMDM3fQ.ZjnbPwklxyTPOItYJyJlmD34O7bhAd9m20ep41JVKI8";
+
+    const response = await fetch('https://glvzfaigecydhgyqhihq.supabase.co/functions/v1/manageProducts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ action, productId, data }),
+    });
+
+    const responseText = await response.text(); // Read the full response as text
+    console.log("Edge Function Response:", responseText);
+
+    if (!response.ok) {
+      throw new Error(`Edge Function error: ${responseText}`);
+    }
+
+    return JSON.parse(responseText); // Parse the response as JSON
+  };
+
   // Load products
   const loadProducts = async () => {
     try {
@@ -31,34 +53,17 @@ export const useCrossBrowserProducts = () => {
       console.log('🛠️ Use Supabase:', useSupabase);
 
       if (useSupabase) {
-        console.log('📡 Trying Supabase...');
-        const { data, error: supabaseError } = await supabase
-          .from('products')
-          .select('id, name, updated_at') // Fetch only necessary columns
-          .order('updated_at', { ascending: false })
-          .limit(100); // Limit to 100 products
-
-        if (supabaseError) {
-          console.error('❌ Supabase error:', supabaseError);
-          setError('Failed to fetch products from Supabase');
-        } else if (data) {
-          console.log('✅ Supabase data:', data.length, 'products');
-          const supabaseProducts = data.map(item => ({
-            id: item.id,
-            name: item.name,
-            image: null, // Placeholder for image
-            createdAt: '', // Placeholder for createdAt
-            updatedAt: item.updated_at,
-            categories: defaultProductCategories // Default categories
-          }));
-
-          setProducts(supabaseProducts);
-          await simpleCrossBrowserStorage.saveProducts(supabaseProducts.map(p => ({
-            ...p,
-            categories: p.categories
-          })));
-          return; // Exit early if Supabase fetch is successful
-        }
+        console.log('📡 Trying Edge Function...');
+        const products = await callEdgeFunction('fetch');
+        console.log('✅ Edge Function data:', products.length, 'products');
+        setProducts(products);
+        // Exclude large image_url field when saving to localStorage
+        const productsToStore = products.map(p => {
+          const { image_url, ...rest } = p;
+          return rest;
+        });
+        await simpleCrossBrowserStorage.saveProducts(productsToStore);
+        return; // Exit early if Edge Function fetch is successful
       }
 
       console.log('💾 Falling back to local storage');
@@ -209,6 +214,17 @@ export const useCrossBrowserProducts = () => {
     return null;
   };
 
+  // Fetch image for a specific product
+  const fetchProductImage = async (productId: string): Promise<string | null> => {
+    try {
+      const result = await callEdgeFunction('fetchImage', productId);
+      return result?.image_url || null;
+    } catch (err) {
+      console.error('Error fetching product image:', err);
+      return null;
+    }
+  };
+
   // Initial load
   useEffect(() => {
     loadProducts();
@@ -235,6 +251,7 @@ export const useCrossBrowserProducts = () => {
     saveProduct,
     deleteProduct,
     fetchProductDetails,
+    fetchProductImage, // Add this to the returned object
     refreshProducts: loadProducts,
     status,
     useSupabase,

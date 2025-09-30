@@ -6,6 +6,7 @@ import NewProductApp from './components/NewProductApp';
 import ExistingProductApp from './components/ExistingProductApp';
 import DraftProductApp from './components/DraftProductApp';
 import CodeExporter from './components/CodeExporter';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   const { 
@@ -409,4 +410,12 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+function WrappedApp() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+export default WrappedApp;
